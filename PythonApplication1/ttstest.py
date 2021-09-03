@@ -1,16 +1,22 @@
-import pyttsx3
-
-tts = pyttsx3.init()
-
-voices = tts.getProperty('voices')
-
-# Задать голос по умолчанию
-tts.setProperty('voice', 'ru') 
-
-# Попробовать установить предпочтительный голос
-for voice in voices:
-    if voice.name == 'Aleksandr':
-        tts.setProperty('voice', voice.id)
-
-tts.say('Командный голос вырабатываю, товарищ генерал-полковник!')
-tts.runAndWait()
+import serial
+ser = serial.Serial('com4', 9600)
+val = input()
+if val == '3':
+    val = '3'
+    hum = ''
+    temp = ''
+    ser.write(val.encode())
+    hum_p = ser.read()
+    hum_p = hum_p.decode("ascii")
+    hum = hum_p
+    hum_p = ser.read()
+    hum_p = hum_p.decode("ascii")
+    hum = hum + hum_p
+    temp_p = ser.read()
+    temp_p = temp_p.decode("ascii")
+    temp = temp_p
+    temp_p = ser.read()
+    temp_p = temp_p.decode("ascii")
+    temp = temp + temp_p
+    print(hum)
+    print(temp)
