@@ -7,6 +7,7 @@ import difflib
 import serial
 from threading import Thread
 import time
+import requests
 if not os.path.exists("model-ru"):
     print ("error model import")
     exit (1) #ПРОВЕРКА ИНИЦИАЛИЗАЦИИ РЕЧЕВОЙ МОДЕЛИ ДЛЯ РАСПОЗНАВАНИЯ
@@ -15,13 +16,16 @@ if not os.path.exists("model-ru"):
 
 ###########################                                           ### ИНИЦИАЛИЗАЦИЯ МОДУЛЕЙ И КОМПОНЕНТОВ ###
 p = pyaudio.PyAudio()               # ИНИЦИАЛИЗАЦИЯ РАБОТЫ СО ЗВУКОМ
-stream = p.open(format=pyaudio.paInt16, channels=1, rate=16000, input=True, frames_per_buffer=8000) #НАСТРОИЛИ ПОТОК С МИКРОФОНА
+
+model = Model("model-ru")           # ИНИЦИАЛИЗАЦИЯ МОДЕЛИ
+rec = KaldiRecognizer(model, 16000) # ИНИЦИАЛИЗАЦИЯ РАСПОЗНАВАНИЯ РЕЧИ
+
+stream = p.open(format=pyaudio.paInt16, channels=1, rate=16000, input=True, frames_per_buffer=16000) #НАСТРОИЛИ ПОТОК С МИКРОФОНА
 stream.start_stream()               # НАЧАЛИ ПРИНИМАТЬ ПОТОК С МИКРОФОНА
 
 ser = serial.Serial('COM4', 9600)   # НАЗНАЧАЕМ ПОРТ ОБЩЕНИЯ С КОНТРОЛЛЕРОМ
 
-model = Model("model-ru")           # ИНИЦИАЛИЗАЦИЯ МОДЕЛИ
-rec = KaldiRecognizer(model, 16000) # ИНИЦИАЛИЗАЦИЯ РАСПОЗНАВАНИЯ РЕЧИ
+
 
 engine = pyttsx3.init()             # ИНИЦИАЛИЗАЦИЯ ДВИЖКА РАЗГОВОРА
 engine.setProperty('rate', 170)     # СКОРОСТЬ
@@ -35,6 +39,7 @@ for voice in voices:
 names = ['саша','саня','сашка','сашенька','санечка','александр','железяка','консерва','бот'] #ИМЕНА НА КОТОРЫЕ РЕАГИРУЕТ АССИСТЕНТ(ДОЛЖНЫ БЫТЬ ПРОИЗНЕСЕНЫ В ЛЮБОМ МЕСТЕ В ОБРАЩЕНИИ)
 modes = ['управление','разговор']   # СПИСОК РЕЖИМОВ БОТА
 mode = modes[0]                     # ТЕКУЩИЙ РЕЖИМ РАБОТЫ
+dht11result = ['','']               # ПЕРЕМЕНЕЫЙ МАССИВ ДЛЯ ИСПОЛЬЗОВАНИЯ ДАННЫХ С ДАТЧИКА DHT11
 print('ТЕКУЩИЙ РЕЖИМ РАБОТЫ:  '+ mode)
 ###########################
 
@@ -42,7 +47,8 @@ print('ТЕКУЩИЙ РЕЖИМ РАБОТЫ:  '+ mode)
 
 def say(text):
     engine.say(text)
-    engine.runAndWait()                    # ГОВОРИМ
+    engine.runAndWait() 
+    engine.stop()                 # ГОВОРИМ
 def search_name(result,names):       
     i = 0
     while i < len(result):
@@ -52,38 +58,64 @@ def search_name(result,names):
         else:
             i = i + 1    # ИЩЕМ В РАСПОЗНАННОЙ ФРАЗЕ ОБРАЩЕНИЕ К АССИСТЕНТУ
 def answer(result):
-    say('отвечаю')
+    
+    if 'погода' or 'погодой' or 'улице' in result:
+     say('сейчас посмотрю')
+     time.sleep(2)
+     weather_check()
 def recognize():  
     while True:
-        data = stream.read(2000)
-        if len(data) == 0:
-            break
-        if rec.AcceptWaveform(data):
-            res = json.loads(rec.Result())['text']
-            print('Распознал   ' + res)
-            result = res.split()
-            search_name(result,names)
-        else:
-            partres = json.loads(rec.PartialResult())['partial']
-            print('Слушаю   ' + partres)                  # РАСПОЗНАВАНИЕ РЕЧИ И ОТПРАВКА ДАННЫХ В МЕТОД ПОИСКА ОБРАЩЕНИЯ
+        try:
+            data = stream.read(2000, exception_on_overflow=False)
+            if len(data) == 0:
+                break
+            if rec.AcceptWaveform(data):
+                res = json.loads(rec.Result())['text']
+                print('Распознал   ' + res)
+                result = res.split()
+                search_name(result,names)
+            else:
+                partres = json.loads(rec.PartialResult())['partial']
+                print('Слушаю   ' + partres)                  # РАСПОЗНАВАНИЕ РЕЧИ И ОТПРАВКА ДАННЫХ В МЕТОД ПОИСКА ОБРАЩЕНИЯ
+        except Exception as e:
+            print('опять наебланил микрофон, ошибка')
 def serial_dht11_check():
-    time.sleep(2)
+    time.sleep(5)
     val = '3'
-    result = ['','']
     ser.write(val.encode())
     hum_p = ser.read()
     hum_p = hum_p.decode("ascii")
-    result[0] = hum_p
+    dht11result[0] = hum_p
     hum_p = ser.read()
     hum_p = hum_p.decode("ascii")
-    result[0] = result[0] + hum_p
+    dht11result[0] = dht11result[0] + hum_p
     temp_p = ser.read()
     temp_p = temp_p.decode("ascii")    #[hum, temp]
-    result[1] = temp_p
+    dht11result[1] = temp_p
     temp_p = ser.read()
     temp_p = temp_p.decode("ascii")
-    result[1] = result[1] + temp_p
-    return result
+    dht11result[1] = dht11result[1] + temp_p
+    print('DHT11: Влажность ' + dht11result[0] + ' %, Температура ' + dht11result[1] + ' (c)')
+    return dht11result         # ПОЛУЧЕНИЕ ИНФОРМАЦИИ С ДАТЧИКА ПОГОДЫ РАЗ В 5 СЕКУНД
+def weather_check():                    
+    try:
+        weather_get = requests.get("http://api.openweathermap.org/data/2.5/weather",
+                     params={'id': 524901, 'units': 'metric', 'lang': 'ru', 'APPID': "c5b6115662d7ea1abfcbea49d146c427"})
+        weather = weather_get.json()
+        #print("conditions:", weather['weather'][0]['description']) # СЛОВЕСНОЕ ОПИСАНИЕ ПОГОДЫ
+        #print("temp:", weather['main']['temp'])                    # ТЕМПЕРАТУРА
+        #print("temp_min:", weather['main']['temp_min'])            # МИНИМАЛЬНАЯ ТЕМПЕРАТУРА
+        #print("temp_max:", weather['main']['temp_max'])            # МАКСИМАЛЬНАЯ ТЕМПЕРАТУРА
+    except Exception as e:
+        print("Exception (weather):", e)
+        say('не могу получить данные')
+        pass              # ПОЛУЧЕНИЕ ИНФОРМАЦИИ О ПОГОДЕ ЗА ОКНОМ
 
-while True:
-    print(serial_dht11_check())
+    say('за окном' +  str(weather['weather'][0]['description']) + 'температура воздуха' + str(int(weather['main']['temp'])) + 'градусов')
+
+
+
+
+recognize()
+while True: 
+    serial_dht11_check()
