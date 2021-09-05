@@ -108,7 +108,7 @@ def weather_check():
     say('за окном' +  str(weather['weather'][0]['description']) + 'температура воздуха' + str(int(weather['main']['temp'])) + 'градусов')              # ПАРСИМ И ПРОИЗНОСИМ ИНФОРМАЦИЮ О ПОГОДЕ НА УЛИЦЕ
 
 
-def answer(result):                  # ГЕНЕРАЦИЯ ОТВЕТОВ ПОСЛЕ ПОЛУЧЕНИЯ КОМАНДЫ
+def answer(result):                  # ГЕНЕРАЦИЯ ОТВЕТОВ ПОСЛЕ ПОЛУЧЕНИЯ КОМАНДЫ                                            КРИВО ПРОВЕРЯЕТ УСЛОВИЕ!!!
     print(result)
     if ('погода' in result or 'погодой' in result or 'улице' in result):
          say('сейчас посмотрю')
