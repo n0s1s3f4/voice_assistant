@@ -10,7 +10,7 @@ import time
 import requests
 if not os.path.exists("model-ru"):
     print ("error model import")
-    exit (1) #ПРОВЕРКА ИНИЦИАЛИЗАЦИИ РЕЧЕВОЙ МОДЕЛИ ДЛЯ РАСПОЗНАВАНИЯ
+    exit (1)                        #ПРОВЕРКА НАЛИЧИЯ РЕЧЕВОЙ МОДЕЛИ ДЛЯ РАСПОЗНАВАНИЯ
 
 
 
@@ -20,7 +20,7 @@ model = Model("model-ru")           # ИНИЦИАЛИЗАЦИЯ МОДЕЛИ
 rec = KaldiRecognizer(model, 16000) # ИНИЦИАЛИЗАЦИЯ РАСПОЗНАВАНИЯ РЕЧИ
 stream = p.open(format=pyaudio.paInt16, channels=1, rate=16000, input=True, frames_per_buffer=16000) #НАСТРОИЛИ ПОТОК С МИКРОФОНА
 stream.start_stream()               # НАЧАЛИ ПРИНИМАТЬ ПОТОК С МИКРОФОНА
-ser = serial.Serial('COM4', 9600)   # НАЗНАЧАЕМ ПОРТ ОБЩЕНИЯ С КОНТРОЛЛЕРОМ
+#ser = serial.Serial('COM4', 9600)   # НАЗНАЧАЕМ ПОРТ ОБЩЕНИЯ С КОНТРОЛЛЕРОМ
 engine = pyttsx3.init()             # ИНИЦИАЛИЗАЦИЯ ДВИЖКА РАЗГОВОРА
 engine.setProperty('rate', 200)     # СКОРОСТЬ
 engine.setProperty('volume', 0.9)   # ГРОМКОСТЬ
@@ -30,10 +30,29 @@ for voice in voices:
     if voice.name == 'Aleksandr':
         engine.setProperty('voice', voice.id)
 names = ['саша','саня','сашка','сашенька','санечка','александр','железяка','консерва','бот'] #ИМЕНА НА КОТОРЫЕ РЕАГИРУЕТ АССИСТЕНТ(ДОЛЖНЫ БЫТЬ ПРОИЗНЕСЕНЫ В ЛЮБОМ МЕСТЕ В ОБРАЩЕНИИ)
-modes = ['управление','разговор']   # СПИСОК РЕЖИМОВ БОТА
-mode = modes[0]                     # ТЕКУЩИЙ РЕЖИМ РАБОТЫ
 dht11result = ['','']               # ПЕРЕМЕНЕЫЙ МАССИВ ДЛЯ ИСПОЛЬЗОВАНИЯ ДАННЫХ С ДАТЧИКА DHT11
-print('ТЕКУЩИЙ РЕЖИМ РАБОТЫ:  '+ mode)
+###########################
+
+###########################                                         ### КОМАНДЫ ВЫПОЛНЯЕМЫЕ САШКОЙ ###   ПЕРВЫЙ ЭЛЕМЕНТ - НАЗВАНИЕ КОМАНДЫ, ВСЕ ЧТО ПОСЛЕ САМ ТЕКСТ КОМАНДЫ
+commands = [
+['погода на улице','погода','погодой','улице','за','окном'],
+
+['погода дома','комнате','температура','влажность','влажностью','температурой', 'в', 'дома','погода','доме'],
+
+['включение лампы','включи','свет','посвети','мне'],
+
+['выключение лампы','выключи','свет','хватит','светить'],
+
+['скажи анекдот','расскажи','мне','анекдот']
+ ]
+
+
+
+
+
+
+
+
 ###########################
 
 
@@ -58,16 +77,16 @@ def recognize():
                 break
             if rec.AcceptWaveform(data):
                 res = json.loads(rec.Result())['text']
-                print('Распознал   ' + res)
+                print('Распознал:   ' + res)
                 result = res.split()
                 search_name(result,names)
             else:
                 partres = json.loads(rec.PartialResult())['partial']
-                print('Слушаю   ' + partres)                  # РАСПОЗНАВАНИЕ РЕЧИ И ОТПРАВКА ДАННЫХ В МЕТОД ПОИСКА ОБРАЩЕНИЯ
+                print('Слушаю:   ' + partres)                  # РАСПОЗНАВАНИЕ РЕЧИ И ОТПРАВКА ДАННЫХ В МЕТОД ПОИСКА ОБРАЩЕНИЯ
         except Exception as e:
             print('опять наебланил микрофон, ошибка')                  # СЛУШАЕМ И РАСПОЗНАЕМ РЕЧЬ
 def serial_dht11_check():
-    time.sleep(5)
+    time.sleep(2)
     val = '3'
     ser.write(val.encode())
     hum_p = ser.read()
@@ -106,26 +125,27 @@ def weather_check():
         pass              # ПОЛУЧЕНИЕ ИНФОРМАЦИИ О ПОГОДЕ ЗА ОКНОМ
 
     say('за окном' +  str(weather['weather'][0]['description']) + 'температура воздуха' + str(int(weather['main']['temp'])) + 'градусов')              # ПАРСИМ И ПРОИЗНОСИМ ИНФОРМАЦИЮ О ПОГОДЕ НА УЛИЦЕ
-
+def lamp(switch):
+        if switch == 'on':
+            val = 4
+        elif switch == 'off':
+            val = 5
+        val = str(switch)
+        ser.write(val.encode())                 # УПРАВЛЯЕМ ПОДКЛЮЧЕННОЙ К КОНТРОЛЛЕРУ ЛАМПОЙ ЧЕРЕЗ РЕЛЕ
 
 def answer(result):                  # ГЕНЕРАЦИЯ ОТВЕТОВ ПОСЛЕ ПОЛУЧЕНИЯ КОМАНДЫ                                            КРИВО ПРОВЕРЯЕТ УСЛОВИЕ!!!
-    print(result)
-    if ('погода' in result or 'погодой' in result or 'улице' in result):
-         say('сейчас посмотрю')
-         time.sleep(2)
-         weather_check()
-    if  ('комнате' and ('температура' or 'влажность' or 'влажностью' or 'температурой')) in result:
-        say('проверяю информацию с датчика')
-        time.sleep(2)
-        room_weather_check(result)
+    command_dict = {}
+    i = 0
+    while i<len(commands):
+       command_dict[commands[i][0]] = len(list(set(result) & set(commands[i])))
+       i = i + 1
+    sorted_command_dict = {}
+    sorted_command_keys = sorted(command_dict, key=command_dict.get, reverse=True) 
+    for w in sorted_command_keys:
+        sorted_command_dict[w] = command_dict[w]
+    final_command = str(list(sorted_command_dict.keys())[0])
+    print('Наибольшее совпадение команды -  ' + final_command)
 
-
-
-
-
-
-
-
+    if final_command == 'скажи анекдот':
+        say('пошел нахуй')
 recognize()
-while True: 
-    serial_dht11_check()
