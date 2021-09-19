@@ -136,16 +136,36 @@ def lamp(switch):
 def answer(result):                  # ГЕНЕРАЦИЯ ОТВЕТОВ ПОСЛЕ ПОЛУЧЕНИЯ КОМАНДЫ                                            КРИВО ПРОВЕРЯЕТ УСЛОВИЕ!!!
     command_dict = {}
     i = 0
-    while i<len(commands):
-       command_dict[commands[i][0]] = len(list(set(result) & set(commands[i])))
-       i = i + 1
+    command_check_coin = 0
+    while i<len(commands):                                                          # СОСТАВЛЯЕМ СЛОВАРЬ СОВПАДЕНИЯ ГОЛОСОВГО ВВОДА С ЗАПИСАННЫМИ КОМАНДАМИ
+        command_dict[commands[i][0]] = len(list(set(result) & set(commands[i])))    
+        i = i + 1
     sorted_command_dict = {}
     sorted_command_keys = sorted(command_dict, key=command_dict.get, reverse=True) 
-    for w in sorted_command_keys:
+    for w in sorted_command_keys:                                                   
         sorted_command_dict[w] = command_dict[w]
-    final_command = str(list(sorted_command_dict.keys())[0])
-    print('Наибольшее совпадение команды -  ' + final_command)
+    for k in sorted_command_dict.values():                                          # ПРОВЕРЯЕМ СОВПАДЕНИЕ ХОТЯ БЫ С ОДНОЙ КОМАНДОЙ ( >1 СЛОВА)
+        if int(list(sorted_command_dict.values())[k]) > 1:
+            command_check_coin = command_check_coin + 1
+
+    if command_check_coin>0:
+        final_command = str(list(sorted_command_dict.keys())[0])
+        print('Наибольшее совпадение ' + final_command)
+        say('секунду')
+        time.sleep(1)
+    else:
+        final_command = 'неопознанная команда'
+        print('не смог распознать команду')
+        say('я вас не понял')
 
     if final_command == 'скажи анекдот':
         say('пошел нахуй')
+    if final_command == 'погода на улице':
+        weather_check()
+    if final_command == 'погода на дома':
+        return
+    if final_command == 'включение лампы':
+        return
+    if final_command == 'выключение лампы':
+        return
 recognize()
