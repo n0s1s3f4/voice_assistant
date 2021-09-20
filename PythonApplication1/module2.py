@@ -1,8 +1,18 @@
 import socket
+from threading import Thread
 
-HOST = '127.0.0.1'  # The server's hostname or IP address
-PORT = 65432        # The port used by the server
-final_command = 'калоед проклятый'
-with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-     s.connect((HOST, PORT))
-     s.send(final_command.encode())
+
+def listen():
+
+
+def send():
+
+
+
+
+if 1==1:
+
+    send_Thread = Thread(target=send)
+    listen_Thread = Thread(target=listen)
+    send_Thread.start()
+    listen_Thread.start()

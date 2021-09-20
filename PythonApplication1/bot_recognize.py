@@ -4,10 +4,9 @@ import json
 import pyaudio
 import pyttsx3
 import difflib
-import serial
 from threading import Thread
 import time
-import requests
+
 import wikipedia
 import socket
 ###########################                                           ### ИНИЦИАЛИЗАЦИЯ МОДУЛЕЙ И КОМПОНЕНТОВ ###
@@ -23,6 +22,7 @@ engine.setProperty('voice', 'ru')   # ЗАДАЕМ ГОЛОС ПО УМОЛЧА�
 voices = engine.getProperty('voices')
 names = ['саша','саня','сашка','сашенька','санечка','александр','железяка','консерва','бот'] #ИМЕНА НА КОТОРЫЕ РЕАГИРУЕТ АССИСТЕНТ(ДОЛЖНЫ БЫТЬ ПРОИЗНЕСЕНЫ В ЛЮБОМ МЕСТЕ В ОБРАЩЕНИИ)
 dht11result = ['','']               # ПЕРЕМЕНЕЫЙ МАССИВ ДЛЯ ИСПОЛЬЗОВАНИЯ ДАННЫХ С ДАТЧИКА DHT11
+
 ###########################
 
 ###########################                                         ### КОМАНДЫ ВЫПОЛНЯЕМЫЕ АССИСТЕНТОМ ###   ПЕРВЫЙ ЭЛЕМЕНТ - НАЗВАНИЕ КОМАНДЫ, ВСЕ ЧТО ПОСЛЕ САМ ТЕКСТ КОМАНДЫ
@@ -52,10 +52,7 @@ commands = [
 
 
 
-def say(text):
-    engine.say(text)
-    engine.runAndWait() 
-    engine.stop()                    # ГОВОРИМ
+         # ГОВОРИМ
 def search_name(result,names):       
     i = 0
     while i < len(result):
@@ -80,6 +77,7 @@ def recognize():
                 print('Слушаю:   ' + partres)                  # РАСПОЗНАВАНИЕ РЕЧИ И ОТПРАВКА ДАННЫХ В МЕТОД ПОИСКА ОБРАЩЕНИЯ
         except Exception as e:
             print('опять наебланил микрофон, ошибка')                  # СЛУШАЕМ И РАСПОЗНАЕМ РЕЧЬ
+            continue
 
 def answer(result):                  # ГЕНЕРАЦИЯ ОТВЕТОВ ПОСЛЕ ПОЛУЧЕНИЯ КОМАНДЫ                                            КРИВО ПРОВЕРЯЕТ УСЛОВИЕ!!!
     command_dict = {}
@@ -99,23 +97,46 @@ def answer(result):                  # ГЕНЕРАЦИЯ ОТВЕТОВ ПОС�
     if command_check_coin>0:
         final_command = str(list(sorted_command_dict.keys())[0])
         print('Наибольшее совпадение ' + final_command)
-        say('секунду')
-        HOST = '127.0.0.1'  # The server's hostname or IP address
-        PORT = 65432        # The port used by the server
-
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            s.connect((HOST, PORT))
-            s.sendall(final_command.encode)
+        send(final_command)
     else:
         final_command = 'неопознанная команда'
         print('не смог распознать команду')
         say('я вас не понял')
 
+def listen():
+    while True:
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                print('начал слушать')
+                HOST = '127.0.0.1'  # The server's hostname or IP address
+                PORT = 65432        # The port used by the server
+                s.bind((HOST, PORT))
+                s.listen()
+                conn, addr = s.accept()
+                with conn:
+                    print('Connected by', addr)
+                    while True:
+                        text_to_say = conn.recv(1024).decode("utf-8")
+                        if not text_to_say:
+                            break
+                        else:
+                            print('Получил текст для озвучки:   ' + text_to_say)
+                            say(text_to_say)
+def send(final_command):
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            print('отправляю')
+            HOST = '127.0.0.1'  # The server's hostname or IP address
+            PORT = 65431        # The port used by the server
+            s.connect((HOST, PORT))
+            s.send(final_command.encode())   
 
-
-
-
+def say(text):
+    engine.say(text)
+    engine.runAndWait() 
+    engine.stop()                    # ГОВОРИМ
 
 if 1==1:
 
+    recognize_Thread = Thread(target=recognize)
+    listen_Thread = Thread(target=listen)
+    listen_Thread.start()
     recognize()
