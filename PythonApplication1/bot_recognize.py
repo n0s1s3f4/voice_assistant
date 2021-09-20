@@ -8,18 +8,18 @@ from threading import Thread
 import time
 import socket
 ###########################                                           ### ИНИЦИАЛИЗАЦИЯ МОДУЛЕЙ И КОМПОНЕНТОВ ###
-p = pyaudio.PyAudio()               # ИНИЦИАЛИЗАЦИЯ РАБОТЫ СО ЗВУКОМ
-model = Model("model-ru")           # ИНИЦИАЛИЗАЦИЯ МОДЕЛИ
-rec = KaldiRecognizer(model, 16000) # ИНИЦИАЛИЗАЦИЯ РАСПОЗНАВАНИЯ РЕЧИ
-stream = p.open(format=pyaudio.paInt16, channels=1, rate=16000, input=True, frames_per_buffer=16000) #НАСТРОИЛИ ПОТОК С МИКРОФОНА
-stream.start_stream()               # НАЧАЛИ ПРИНИМАТЬ ПОТОК С МИКРОФОНА
-engine = pyttsx3.init()             # ИНИЦИАЛИЗАЦИЯ ДВИЖКА РАЗГОВОРА
-engine.setProperty('rate', 200)     # СКОРОСТЬ
-engine.setProperty('volume', 0.9)   # ГРОМКОСТЬ
-engine.setProperty('voice', 'ru')   # ЗАДАЕМ ГОЛОС ПО УМОЛЧАНИЮ (по факту ничего не делает но без нее ничего не работает)
+p = pyaudio.PyAudio()                                                                                            # ИНИЦИАЛИЗАЦИЯ РАБОТЫ СО ЗВУКОМ
+model = Model("model-ru")                                                                                        # ИНИЦИАЛИЗАЦИЯ МОДЕЛИ
+rec = KaldiRecognizer(model, 16000)                                                                              # ИНИЦИАЛИЗАЦИЯ РАСПОЗНАВАНИЯ РЕЧИ
+stream = p.open(format=pyaudio.paInt16, channels=1, rate=16000, input=True, frames_per_buffer=16000)             # НАСТРОИЛИ ПОТОК С МИКРОФОНА
+stream.start_stream()                                                                                            # НАЧАЛИ ПРИНИМАТЬ ПОТОК С МИКРОФОНА
+engine = pyttsx3.init()                                                                                          # ИНИЦИАЛИЗАЦИЯ ДВИЖКА РАЗГОВОРА
+engine.setProperty('rate', 200)                                                                                  # СКОРОСТЬ
+engine.setProperty('volume', 0.9)                                                                                # ГРОМКОСТЬ
+engine.setProperty('voice', 'ru')                                                                                # ЗАДАЕМ ГОЛОС ПО УМОЛЧАНИЮ (по факту ничего не делает но без нее ничего не работает)
 voices = engine.getProperty('voices')
-names = ['саша','саня','сашка','сашенька','санечка','александр','железяка','консерва','бот'] #ИМЕНА АССИСТЕНТА
-
+names = ['саша','саня','сашка','сашенька','санечка','александр','железяка','консерва','бот']                     # ИМЕНА АССИСТЕНТА
+mode = 0                                                                                                       # РЕЖИМЫ РАБОТЫ АССИСТЕНТА (1 - ГОВОРИМ, 0 - ПРИНИМАЕМ ТЕКСТ)
 ###########################
 
 ###########################                                            ### КОМАНДЫ ВЫПОЛНЯЕМЫЕ АССИСТЕНТОМ ###   
@@ -36,7 +36,11 @@ commands = [
  ]
 
 ###########################
-
+def recognize_text():
+    while True:
+        res = input()
+        result = res.split()
+        search_name(result,names)            
 def recognize():  
     while True:
         try:
@@ -79,7 +83,7 @@ def answer(result):
 
     if command_check_coin>0:
         final_command = str(list(sorted_command_dict.keys())[0])
-        print('Наибольшее совпадение ' + final_command)
+        print('Наибольшее совпадение -   ' + final_command)
         send(final_command)
     else:
         final_command = 'неопознанная команда'
@@ -116,7 +120,13 @@ def say(text):
     engine.stop()                    # ПРОИЗНОСИМ ФРАЗУ
 
 if 1==1:                             # ОСНОВНОЙ ЦИКЛ РАБОТЫ
-    say('ассистент запущен')
-    listen_Thread = Thread(target=listen)            # ТОЧКА ВХОДА В ПРОСЛУШИВАНИЕ ЗАПРОСОВ ОТ ЯДРА
-    listen_Thread.start()
-    recognize()                                      # ТОЧКА ВХОДА В РАСПОЗНАВАНИЕ
+    if mode == 1:
+        say('ассистент запущен')
+        listen_Thread = Thread(target=listen)            # ТОЧКА ВХОДА В ПРОСЛУШИВАНИЕ ЗАПРОСОВ ОТ ЯДРА
+        listen_Thread.start()
+        recognize()                                      # ТОЧКА ВХОДА В РАСПОЗНАВАНИЕ
+
+    if mode == 0:
+        listen_Thread = Thread(target=listen)            # ТОЧКА ВХОДА В ПРОСЛУШИВАНИЕ ЗАПРОСОВ ОТ ЯДРА
+        listen_Thread.start()
+        recognize_text()                                      # ТОЧКА ВХОДА В РАСПОЗНАВАНИЕ
