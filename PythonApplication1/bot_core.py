@@ -2,6 +2,8 @@ import socket
 import serial
 import pyttsx3
 import requests
+import wikipedia
+import time
 ser = serial.Serial('COM5', 9600)   # НАЗНАЧАЕМ ПОРТ ОБЩЕНИЯ С КОНТРОЛЛЕРОМ
 
 
@@ -69,7 +71,6 @@ def lamp(switch):
             val = 5
         val = str(val)
         ser.write(val.encode())                 # УПРАВЛЯЕМ ПОДКЛЮЧЕННОЙ К КОНТРОЛЛЕРУ ЛАМПОЙ ЧЕРЕЗ РЕЛЕ
-
 def listen():
     while True:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -88,7 +89,6 @@ def listen():
                     else:
                         print('Получил команду:   ' + final_command)
                         command(final_command)
-
 def say(text):
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             print('отправляю')
@@ -97,6 +97,7 @@ def say(text):
             s.connect((HOST, PORT))
             s.send(text.encode())   
 
-
 if 1==1:
+    time.sleep(5)
+    say('ядро запущено')
     listen()
