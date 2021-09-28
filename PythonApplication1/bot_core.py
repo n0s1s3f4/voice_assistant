@@ -4,6 +4,9 @@ import pyttsx3
 import requests
 import wikipedia
 import time
+from paho.mqtt import publish
+from paho.mqtt import client
+
 ser = serial.Serial('COM5', 9600)   # НАЗНАЧАЕМ ПОРТ ОБЩЕНИЯ С КОНТРОЛЛЕРОМ
 
 
@@ -96,7 +99,6 @@ def say(text):
             PORT = 65432        # The port used by the server
             s.connect((HOST, PORT))
             s.send(text.encode())   
-
 if 1==1:
     time.sleep(5)
     say('ядро запущено')

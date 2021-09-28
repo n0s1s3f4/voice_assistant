@@ -32,7 +32,9 @@ commands = [
 
 ['выключение лампы',       'выключи','свет','хватит','светить'],
 
-['скажи анекдот',          'расскажи','мне','анекдот']
+['скажи анекдот',          'расскажи','мне','анекдот'],
+
+['таймер',                 'поставь','таймер','на','часов','минут']
  ]
 
 ###########################
@@ -83,7 +85,7 @@ def answer(result):
 
     if command_check_coin>0:
         final_command = str(list(sorted_command_dict.keys())[0])
-        print('Наибольшее совпадение -   ' + final_command)
+        print('Наибольшее совпадение -     ' + final_command)
         send(final_command)
     else:
         final_command = 'неопознанная команда'
@@ -129,4 +131,4 @@ if 1==1:                             # ОСНОВНОЙ ЦИКЛ РАБОТЫ
     if mode == 0:
         listen_Thread = Thread(target=listen)            # ТОЧКА ВХОДА В ПРОСЛУШИВАНИЕ ЗАПРОСОВ ОТ ЯДРА
         listen_Thread.start()
-        recognize_text()                                      # ТОЧКА ВХОДА В РАСПОЗНАВАНИЕ
+        recognize_text()                          # ТОЧКА ВХОДА В РАСПОЗНАВАНИЕ
