@@ -35,6 +35,9 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="bot_recognize.py" />
+    <Compile Include="talk_test.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="ttstest.py">
       <SubType>Code</SubType>
     </Compile>
