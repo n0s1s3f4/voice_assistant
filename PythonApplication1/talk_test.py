@@ -1,7 +1,13 @@
 import time
 import difflib
 import linecache
-def talk(result):
+def talk(input_array):
+    count = 0;
+    result = ''
+    while count<len(input_array):
+        result = result + ' ' + input_array[count]
+        print(result)
+        count = count + 1
     database = open("answer_database.txt", "r",encoding='utf-8')
     i=0
     seq_dict = {}
@@ -29,6 +35,6 @@ def talk(result):
     database.close()
     return str(answer)
     
-if 1==1:
-    print(talk("приветик парень"))
+while 1==1:
+    print(talk(['погода на улице',        'погода','погодой','улице','за','окном']))
 

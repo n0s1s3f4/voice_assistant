@@ -7,6 +7,7 @@ import difflib
 from threading import Thread
 import time
 import socket
+import linecache
 ###########################                                           ### ИНИЦИАЛИЗАЦИЯ МОДУЛЕЙ И КОМПОНЕНТОВ ###
 p = pyaudio.PyAudio()                                                                                            # ИНИЦИАЛИЗАЦИЯ РАБОТЫ СО ЗВУКОМ
 model = Model("model-ru")                                                                                        # ИНИЦИАЛИЗАЦИЯ МОДЕЛИ
@@ -88,9 +89,10 @@ def answer(result):
         print('Наибольшее совпадение -     ' + final_command)
         send(final_command)
     else:
-        final_command = 'неопознанная команда'
-        print('не смог распознать команду')
-        say('я вас не понял')               # ГЕНЕРАЦИЯ ОТВЕТОВ ПОСЛЕ ПОЛУЧЕНИЯ КОМАНДЫ
+        if mode ==1:
+            say(talk(result))
+        else:
+            print(talk(result))
 def listen():
     while True:
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -115,7 +117,39 @@ def send(final_command):
             HOST = '127.0.0.1'  # The server's hostname or IP address
             PORT = 65431        # The port used by the server
             s.connect((HOST, PORT))
-            s.send(final_command.encode())          # ОТПРАВЛЯЕМ ЗАПРОС В ЯДРО
+            s.send(final_command.encode())          # ОТПРАВЛЯЕМ ЗАПРОС В ЯДР
+def talk(input_array):
+    count = 0;
+    result = ''
+    while count<len(input_array):
+        result = result + ' ' + input_array[count]
+        count = count + 1
+    database = open("answer_database.txt", "r",encoding='utf-8')
+    i=0
+    seq_dict = {}
+    sequence = ['','','']
+    answer_dict = {}
+    def similar(seq1,seq2):
+        return difflib.SequenceMatcher(a=seq1,b=seq2).ratio()
+    while i<8000:
+        line = database.readline()
+        if not line:
+            break
+        splitted = line.split('=')
+        splitted[1] = splitted[1].replace("\n","")
+        sequence[0] = splitted[0]
+        sequence[1] = splitted[1]
+        sequence[2] = i+1
+        seq_dict[sequence[2]] = similar(result,sequence[0])
+        answer_dict[sequence[2]] = splitted[1]
+        i=i+1
+        sorted_dict = sorted(seq_dict.items(), key=lambda x: x[1])
+        resultat = sorted_dict[7999][0]
+        answer = answer_dict.get(resultat)
+        database.close()
+        return str(answer)
+
+
 def say(text):
     engine.say(text)
     engine.runAndWait() 

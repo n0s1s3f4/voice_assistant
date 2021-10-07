@@ -4,6 +4,8 @@ import pyttsx3
 import requests
 import wikipedia
 import time
+import difflib
+import linecache
 from paho.mqtt import publish
 from paho.mqtt import client
 
