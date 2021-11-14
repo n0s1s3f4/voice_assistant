@@ -1,6 +1,6 @@
 import os
 import mysql.connector
-database = open("answer_database.txt", "r",encoding='utf-8')
+database = open("baza.txt", "r",encoding='utf-8')
 
 
 def create_connection(host_name, user_name, user_password,db_name,db_port):

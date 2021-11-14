@@ -4,7 +4,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>b37ab286-3221-43f3-a746-e27aaab409fd</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>module2.py</StartupFile>
+    <StartupFile>kira_voice_core.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>

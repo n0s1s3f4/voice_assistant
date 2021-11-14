@@ -23,12 +23,12 @@ connection = create_connection("localhost", "root", "123098","kira_db","3306")
 cursor = connection.cursor()
 AIdict = []
 def get_talkAI_database():
+    global count
     cursor.execute("SELECT question FROM kira_talk_ai ORDER BY id") 
     questions = cursor.fetchall() # get questions
     cursor.execute("SELECT answer FROM kira_talk_ai ORDER BY id") 
     answers = cursor.fetchall() # get answers
     cursor.execute("SELECT COUNT(*) FROM kira_talk_ai")
-    global count
     count = cursor.fetchall()[0][0]# get rows count
     i=0
     AIdictPartial=[0,'','']
@@ -38,16 +38,10 @@ def get_talkAI_database():
         i=i+1
     return AIdict  # В РЕЗУЛЬТАТЕ ПОЛУЧАЕМ МНОГОМЕРНЫЙ МАССИВ, ОДИН ЭЛЕМЕНТ ЭТО [0, ВОПРОС,ОТВЕТ]
 
-def get_talkAI_answer(phrase):
-    result_dict = AIdict
-    i=0
-    while i<count:
-        result_dict[i][0]=difflib.SequenceMatcher(a=phrase,b=result_dict[i][1]).ratio()
-        i = i+1
-    print(result_dict)
 
 
 
 
 get_talkAI_database()
-get_talkAI_answer('отсоси мой член')
+while 1==1:
+    print(get_talkAI_answer(input()))
