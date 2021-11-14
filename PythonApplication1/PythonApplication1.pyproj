@@ -4,7 +4,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>b37ab286-3221-43f3-a746-e27aaab409fd</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>bot_recognize.py</StartupFile>
+    <StartupFile>module2.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
@@ -12,6 +12,7 @@
     <Name>PythonApplication1</Name>
     <RootNamespace>PythonApplication1</RootNamespace>
     <InterpreterId>MSBuild|env|$(MSBuildProjectFullPath)</InterpreterId>
+    <TestFramework>unittest</TestFramework>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
     <DebugSymbols>true</DebugSymbols>
@@ -28,6 +29,9 @@
     <Compile Include="bot_core.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="kira_voice_core.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="module1.py">
       <SubType>Code</SubType>
     </Compile>
@@ -35,10 +39,16 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="bot_recognize.py" />
+    <Compile Include="mqtt_listen.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="sql_dict_import.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="talk_test.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="ttstest.py">
+    <Compile Include="dht_set_get_data.py">
       <SubType>Code</SubType>
     </Compile>
   </ItemGroup>

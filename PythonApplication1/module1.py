@@ -19,10 +19,6 @@ def listen():
                             break
                         else:
                             print('Получил команду:   ' + final_command)
-
-def send():
-
-
 if 1==1:
 
     send_Thread = Thread(target=send)
