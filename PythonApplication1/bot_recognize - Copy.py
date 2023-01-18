@@ -1,0 +1,260 @@
+from vosk import Model, KaldiRecognizer
+import os
+import json
+import pyaudio
+import pyttsx3
+import difflib
+from threading import Thread
+import time
+import socket
+import linecache
+import wikipedia
+import numpy as np #importing Numpy with an alias np
+import struct 
+import matplotlib.pyplot as plt 
+
+###########################                                           ### ИНИЦИАЛИЗАЦИЯ МОДУЛЕЙ И КОМПОНЕНТОВ ###
+
+
+model = Model("model-ru")                                                                                        # ИНИЦИАЛИЗАЦИЯ МОДЕЛИ
+rec = KaldiRecognizer(model, 16000)                                                                              # ИНИЦИАЛИЗАЦИЯ РАСПОЗНАВАНИЯ РЕЧИ
+p = pyaudio.PyAudio()                                                                                           # ИНИЦИАЛИЗАЦИЯ РАБОТЫ СО ЗВУКОМ
+stream = p.open(format=pyaudio.paInt16, channels=1, rate=16000, input=True, frames_per_buffer=48000)             # НАСТРОИЛИ ПОТОК С МИКРОФОНА
+stream.start_stream()                                                                                            # НАЧАЛИ ПРИНИМАТЬ ПОТОК С МИКРОФОНА
+engine = pyttsx3.init()                                                                                          # ИНИЦИАЛИЗАЦИЯ ДВИЖКА РАЗГОВОРА
+engine.setProperty('rate', 200)                                                                                  # СКОРОСТЬ
+engine.setProperty('volume', 0.9)                                                                                # ГРОМКОСТЬ
+voices = engine.getProperty('voices')                                                                            # ПОЛУЧАЕМ СПИСОК УСТАНОВЛЕННЫХ В СИСТЕМЕ ГОЛОСОВ
+engine.setProperty('voice', voices[2].id)                                                                        # ЗАДАЕМ ГОЛОС ПО УМОЛЧАНИЮ
+names = ['саша','саня','сашка','сашенька','санечка','александр','железяка','консерва','бот',"саш","сша","сани"]  # ИМЕНА АССИСТЕНТА
+mode = 1                                                                                                         # РЕЖИМЫ РАБОТЫ АССИСТЕНТА (1 - ГОВОРИМ, 0 - ПРИНИМАЕМ ТЕКСТ)
+string_count = 8000                                                                                              # количество строк в базе данных
+wikipedia.set_lang("ru")
+CHUNK = 1024 * 1
+FORMAT = pyaudio.paInt16
+CHANNELS = 1
+RATE = 44100 # in Hz
+v = pyaudio.PyAudio()
+
+
+
+###########################
+
+
+
+
+###########################                                            ### КОМАНДЫ ВЫПОЛНЯЕМЫЕ АССИСТЕНТОМ ###   
+commands = [
+['погода на улице',        'погода','погодой','улице','за','окном','сегодня'],
+
+['скажи анекдот',          'расскажи','мне','анекдот'],
+
+['вошел в дом',          'я','дома','пришёл'],
+
+['вышел из дома',          'я','ухожу','до','вечера'],
+
+['доброе утро',                 'доброе','утро'],
+
+['спокойной ночи',              'спокойной','ночи'],
+
+['вопрос вики',             'что', 'такое', 'кто', 'такой', 'такая']
+
+
+ ]
+
+###########################
+def recognize_text():
+    while True:
+        res = input()
+        result = res.split()
+        search_name(result,names)            
+
+
+def recognize():  
+    while True:
+        try:
+            data = stream.read(6000, exception_on_overflow=False)
+            if len(data) == 0:
+                break
+            if rec.AcceptWaveform(data):
+                res = json.loads(rec.Result())['text']
+                print('Распознал:   ' + res)
+                result = res.split()
+                search_name(result,names)
+            else:
+                partres = json.loads(rec.PartialResult())['partial']
+                print('Слушаю:   ' + partres)                          # РАСПОЗНАВАНИЕ РЕЧИ И ОТПРАВКА ДАННЫХ В МЕТОД ПОИСКА ОБРАЩЕНИЯ
+        except Exception as e:
+            print('опять наебланил микрофон, ошибка')                  # СЛУШАЕМ И РАСПОЗНАЕМ РЕЧЬ
+            print(e)
+            continue                                                   # СЛУШАЕМ ЭФИР И ЛОВИМ СЛОВА
+
+
+def search_name(result,names):  
+    i = 0
+    while i < len(result):
+        if result[i] in names:
+            answer(result)
+            break
+        else:
+            i = i + 1    # ИЩЕМ В РАСПОЗНАННОЙ ФРАЗЕ ОБРАЩЕНИЕ К АССИСТЕНТУ
+def search_wiki(zapros):
+    print(zapros)
+    del zapros[0:3]
+    zapros_final = ""
+    i = 0
+    print(zapros)
+    for slovo in zapros:
+        zapros_final = zapros_final + slovo + " "
+    print(zapros_final)
+
+    search = wikipedia.search(zapros_final, results = 1)[0]
+
+    otvet = wikipedia.summary(search,sentences=2)
+    say(otvet)
+    recognize()
+def answer(result):  
+    command_dict = {}
+    i = 0
+    command_check_coin = 0
+    while i<len(commands):                                                          # СОСТАВЛЯЕМ СЛОВАРЬ СОВПАДЕНИЯ ГОЛОСОВГО ВВОДА С ЗАПИСАННЫМИ КОМАНДАМИ
+        command_dict[commands[i][0]] = len(list(set(result) & set(commands[i])))    
+        i = i + 1
+    sorted_command_dict = {}
+    sorted_command_keys = sorted(command_dict, key=command_dict.get, reverse=True) 
+    for w in sorted_command_keys:                                                   
+        sorted_command_dict[w] = command_dict[w]
+    for k in sorted_command_dict.values():                                          # ПРОВЕРЯЕМ СОВПАДЕНИЕ ХОТЯ БЫ С ОДНОЙ КОМАНДОЙ ( >1 СЛОВА)
+        if int(list(sorted_command_dict.values())[k]) > 1:
+            command_check_coin = command_check_coin + 1
+
+    if command_check_coin>0:
+        final_command = str(list(sorted_command_dict.keys())[0])
+        print('Наибольшее совпадение -     ' + final_command)
+        if final_command == "вопрос вики":
+            search_wiki(result)
+        else:
+            send(final_command)
+        listen()
+        recognize()
+    else:
+        if mode == 1:
+            print(result)
+            say(talk(result))
+        else:
+            print(talk(result))
+def listen():
+    while True:
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                print('начал слушать')
+                HOST = '127.0.0.1'  # The server's hostname or IP address
+                PORT = 65432        # The port used by the server
+                s.bind((HOST, PORT))
+                s.listen()
+                conn, addr = s.accept()
+                with conn:
+                    print('Connected by', addr)
+                    while True:
+                        text_to_say = conn.recv(1024).decode("utf-8")
+                        if not text_to_say:
+                            print("пустой пакет озвучки")
+                            break
+                        else:
+                            if mode == 1:
+                                print('Получил текст для озвучки:   ' + text_to_say)
+                                say(text_to_say)
+                                break
+                            else:
+                                print(text_to_say)
+                                break
+                break
+       # СЛУШАЕМ ЗАПРОСЫ ОТ ЯДРА
+def send(final_command):
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            print('отправляю')
+            HOST = '127.0.0.1'  # The server's hostname or IP address
+            PORT = 65431        # The port used by the server
+            s.connect((HOST, PORT))
+            s.send(final_command.encode())          # ОТПРАВЛЯЕМ ЗАПРОС В ЯДРO
+
+def talk(input_array):
+    count = 0
+    result = ''
+    while count<len(input_array):
+        result = result + ' ' + input_array[count]
+        count = count + 1
+    database = open("answer_database.txt", "r",encoding='utf-8')
+    i=0
+    seq_dict = {}
+    sequence = ['','','']
+    answer_dict = {}
+    def similar(seq1,seq2):
+        return difflib.SequenceMatcher(a=seq1,b=seq2).ratio()
+    while i<string_count:
+        line = database.readline()
+        if not line:
+            break
+        splitted = line.split('=')
+        splitted[1] = splitted[1].replace("\n","")
+        sequence[0] = splitted[0]
+        sequence[1] = splitted[1]
+        sequence[2] = i+1
+        seq_dict[sequence[2]] = similar(result,sequence[0])
+        answer_dict[sequence[2]] = splitted[1]
+        i=i+1
+    sorted_dict = sorted(seq_dict.items(), key=lambda x: x[1])
+    pre_answer = sorted_dict[string_count - 1][0]
+    answer = answer_dict.get(pre_answer)
+    database.close()
+    return str(answer)
+
+
+def say(text):
+    if engine._inLoop:
+         engine.endLoop()
+    engine.say(text) 
+    engine.runAndWait() 
+    engine.stop()                    # ПРОИЗНОСИМ ФРАЗУ
+
+
+def audio_vis():\
+
+    stream_output_loopback = v.open(
+    format = FORMAT,
+    channels = CHANNELS,
+    rate = RATE,
+    input=True,
+    output=True,
+    frames_per_buffer=CHUNK,
+    input_device_index=4
+    )
+
+
+    fig, (ax) = plt.subplots(1)
+    x = np.arange(0,2*CHUNK,2)
+    line = ax.plot(x, np.random.rand(CHUNK),'r')
+   # ax.set_ylim(-32000,32000)
+   # ax.ser_xlim = (0,CHUNK)
+    fig.show()
+    while 1:
+        data = stream_output_loopback.read(CHUNK)
+        dataInt = struct.unpack(str(CHUNK) + 'h', data)
+        line.set_ydata(dataInt)
+        line_fft.set_ydata(np.abs(np.fft.fft(dataInt))*2/(11000*CHUNK))
+        fig.canvas.draw()
+        fig.canvas.flush_events()
+
+
+if 1==1:                             # ОСНОВНОЙ ЦИКЛ РАБОТЫ
+    if mode == 1:
+        say('ассистент запущен')
+    #    listen_Thread = Thread(target=listen)            # ТОЧКА ВХОДА В ПРОСЛУШИВАНИЕ ЗАПРОСОВ ОТ ЯДРА
+      #  listen_Thread.start()
+        recognize()                                      # ТОЧКА ВХОДА В РАСПОЗНАВАНИЕ
+
+    if mode == 0:
+        listen_Thread = Thread(target=listen)            # ТОЧКА ВХОДА В ПРОСЛУШИВАНИЕ ЗАПРОСОВ ОТ ЯДРА
+        listen_Thread.start()
+        visualise_thread = Thread(target=audio_vis)
+        visualise_thread.start()
+        recognize_text()                          # ТОЧКА ВХОДА В РАСПОЗНАВАНИЕ

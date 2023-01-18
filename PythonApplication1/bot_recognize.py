@@ -8,6 +8,9 @@ from threading import Thread
 import time
 import socket
 import linecache
+import wikipedia
+
+
 ###########################                                           ### ИНИЦИАЛИЗАЦИЯ МОДУЛЕЙ И КОМПОНЕНТОВ ###
 model = Model("model-ru")                                                                                        # ИНИЦИАЛИЗАЦИЯ МОДЕЛИ
 rec = KaldiRecognizer(model, 16000)                                                                              # ИНИЦИАЛИЗАЦИЯ РАСПОЗНАВАНИЯ РЕЧИ
@@ -17,26 +20,34 @@ stream.start_stream()                                                           
 engine = pyttsx3.init()                                                                                          # ИНИЦИАЛИЗАЦИЯ ДВИЖКА РАЗГОВОРА
 engine.setProperty('rate', 200)                                                                                  # СКОРОСТЬ
 engine.setProperty('volume', 0.9)                                                                                # ГРОМКОСТЬ
-engine.setProperty('voice', 'ru')                                                                                # ЗАДАЕМ ГОЛОС ПО УМОЛЧАНИЮ (по факту ничего не делает но без нее ничего не работает)
-voices = engine.getProperty('voices')
-names = ['саша','саня','сашка','сашенька','санечка','александр','железяка','консерва','бот',"саш","сша"]         # ИМЕНА АССИСТЕНТА
+engine.setProperty()
+voices = engine.getProperty('voices')                                                                            # ПОЛУЧАЕМ СПИСОК УСТАНОВЛЕННЫХ В СИСТЕМЕ ГОЛОСОВ
+engine.setProperty('voice', voices[2].id)                                                                        # ЗАДАЕМ ГОЛОС ПО УМОЛЧАНИЮ
+names = ['саша','саня','сашка','сашенька','санечка','александр','железяка','консерва','бот',"саш","сша","сани"]  # ИМЕНА АССИСТЕНТА
 mode = 1                                                                                                         # РЕЖИМЫ РАБОТЫ АССИСТЕНТА (1 - ГОВОРИМ, 0 - ПРИНИМАЕМ ТЕКСТ)
-string_count = 8000                                                                                              #количество строк в базе данных
+string_count = 8000                                                                                              # количество строк в базе данных
+wikipedia.set_lang("ru")
 ###########################
+
+
+
 
 ###########################                                            ### КОМАНДЫ ВЫПОЛНЯЕМЫЕ АССИСТЕНТОМ ###   
 commands = [
-['погода на улице',        'погода','погодой','улице','за','окном'],
-
-['включение лампы',        'включи','свет','посвети','мне'],
-
-['выключение лампы',       'выключи','свет','хватит','светить'],
+['погода на улице',        'погода','погодой','улице','за','окном','сегодня'],
 
 ['скажи анекдот',          'расскажи','мне','анекдот'],
 
-['таймер',                 'поставь','таймер','на','часов','минут'],
+['вошел в дом',          'я','дома','пришёл'],
 
-["сон",                     "спать","пора","сон","погаси","всё"]
+['вышел из дома',          'я','ухожу','до','вечера'],
+
+['доброе утро',                 'доброе','утро'],
+
+['спокойной ночи',              'спокойной','ночи'],
+
+['вопрос вики',             'что', 'такое', 'кто', 'такой', 'такая']
+
 
  ]
 
@@ -76,7 +87,21 @@ def search_name(result,names):
             break
         else:
             i = i + 1    # ИЩЕМ В РАСПОЗНАННОЙ ФРАЗЕ ОБРАЩЕНИЕ К АССИСТЕНТУ
-        
+def search_wiki(zapros):
+    print(zapros)
+    del zapros[0:3]
+    zapros_final = ""
+    i = 0
+    print(zapros)
+    for slovo in zapros:
+        zapros_final = zapros_final + slovo + " "
+    print(zapros_final)
+
+    search = wikipedia.search(zapros_final, results = 1)[0]
+
+    otvet = wikipedia.summary(search,sentences=2)
+    say(otvet)
+    recognize()
 def answer(result):  
     command_dict = {}
     i = 0
@@ -95,7 +120,12 @@ def answer(result):
     if command_check_coin>0:
         final_command = str(list(sorted_command_dict.keys())[0])
         print('Наибольшее совпадение -     ' + final_command)
-        send(final_command)
+        if final_command == "вопрос вики":
+            search_wiki(result)
+        else:
+            send(final_command)
+        listen()
+        recognize()
     else:
         if mode == 1:
             print(result)
@@ -116,13 +146,17 @@ def listen():
                     while True:
                         text_to_say = conn.recv(1024).decode("utf-8")
                         if not text_to_say:
+                            print("пустой пакет озвучки")
                             break
                         else:
                             if mode == 1:
                                 print('Получил текст для озвучки:   ' + text_to_say)
                                 say(text_to_say)
+                                break
                             else:
                                 print(text_to_say)
+                                break
+                break
        # СЛУШАЕМ ЗАПРОСЫ ОТ ЯДРА
 def send(final_command):
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -175,8 +209,8 @@ def say(text):
 if 1==1:                             # ОСНОВНОЙ ЦИКЛ РАБОТЫ
     if mode == 1:
         say('ассистент запущен')
-        listen_Thread = Thread(target=listen)            # ТОЧКА ВХОДА В ПРОСЛУШИВАНИЕ ЗАПРОСОВ ОТ ЯДРА
-        listen_Thread.start()
+    #    listen_Thread = Thread(target=listen)            # ТОЧКА ВХОДА В ПРОСЛУШИВАНИЕ ЗАПРОСОВ ОТ ЯДРА
+      #  listen_Thread.start()
         recognize()                                      # ТОЧКА ВХОДА В РАСПОЗНАВАНИЕ
 
     if mode == 0:
