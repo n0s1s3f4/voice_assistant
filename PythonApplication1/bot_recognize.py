@@ -20,12 +20,11 @@ stream.start_stream()                                                           
 engine = pyttsx3.init()                                                                                          # ИНИЦИАЛИЗАЦИЯ ДВИЖКА РАЗГОВОРА
 engine.setProperty('rate', 200)                                                                                  # СКОРОСТЬ
 engine.setProperty('volume', 0.9)                                                                                # ГРОМКОСТЬ
-engine.setProperty()
 voices = engine.getProperty('voices')                                                                            # ПОЛУЧАЕМ СПИСОК УСТАНОВЛЕННЫХ В СИСТЕМЕ ГОЛОСОВ
 engine.setProperty('voice', voices[2].id)                                                                        # ЗАДАЕМ ГОЛОС ПО УМОЛЧАНИЮ
 names = ['саша','саня','сашка','сашенька','санечка','александр','железяка','консерва','бот',"саш","сша","сани"]  # ИМЕНА АССИСТЕНТА
 mode = 1                                                                                                         # РЕЖИМЫ РАБОТЫ АССИСТЕНТА (1 - ГОВОРИМ, 0 - ПРИНИМАЕМ ТЕКСТ)
-string_count = 8000                                                                                              # количество строк в базе данных
+string_count = 2000                                                                                              # количество строк в базе данных
 wikipedia.set_lang("ru")
 ###########################
 
@@ -46,8 +45,13 @@ commands = [
 
 ['спокойной ночи',              'спокойной','ночи'],
 
-['вопрос вики',             'что', 'такое', 'кто', 'такой', 'такая']
+['вопрос вики',             'что', 'такое', 'кто', 'такой', 'такая'],
 
+['закрыть дверь',                    'закрой', 'дверь', 'заблокируй'],
+
+['открыть дверь',                    'открой', 'дверь', 'разблокируй'],
+
+['зигби заряд',                       'заряд','оставшийся','батарейки', 'заряда', 'остаток']        
 
  ]
 
@@ -136,7 +140,7 @@ def listen():
     while True:
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                 print('начал слушать')
-                HOST = '127.0.0.1'  # The server's hostname or IP address
+                HOST = '192.168.1.7'  # The server's hostname or IP address
                 PORT = 65432        # The port used by the server
                 s.bind((HOST, PORT))
                 s.listen()
@@ -161,7 +165,7 @@ def listen():
 def send(final_command):
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             print('отправляю')
-            HOST = '127.0.0.1'  # The server's hostname or IP address
+            HOST = '192.168.1.4'  # The server's hostname or IP address
             PORT = 65431        # The port used by the server
             s.connect((HOST, PORT))
             s.send(final_command.encode())          # ОТПРАВЛЯЕМ ЗАПРОС В ЯДРO

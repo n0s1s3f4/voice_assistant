@@ -2,19 +2,13 @@ import socket
 import requests
 import wikipedia
 import time
-import difflib
-import linecache
-from paho.mqtt import client as mqtt_client
 from threading import Thread
 import os
 import datetime
 import json
+from hassapi import Hass
 
-broker = '192.168.1.4'
-port = 12765
-client_id = 'core'
-username = 'esp8266'
-password = '123098'
+hass = Hass(hassurl="http://192.168.1.19:8123/", token="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJhMTA1NTM4MzU3MGM0YmIwOTY4ZDMxNTEwZDZjYjg0MyIsImlhdCI6MTY4NDI2MTkxMiwiZXhwIjoxOTk5NjIxOTEyfQ.x3GADWuTxpG-cdOrzYo78I-eS-nw1K5lGLACavT8ntw")
 
 
 weather_dict = {
@@ -59,73 +53,55 @@ def command(final_command):
 
     if final_command == 'спокойной ночи':
           yandex_scenario_good_night()
-            
 
+    if final_command == 'закрыть дверь':
+          close_door_and_turn_on_lock()
+
+    if final_command == 'открыть дверь':
+          open_door()
+    if final_command == 'зигби заряд':
+          charge_info()
+
+
+def charge_info():
+    
+    
+    
+
+    answer = "заряд внешней кнопки двери. " + str(hass.get_state("sensor.0x00124b00253bb307_battery").state) + " заряд внутренней кнопки. " + str(hass.get_state("sensor.0x00124b0028929001_battery").state) + " заряд датчика температуры. " + str(hass.get_state("sensor.0xa4c138e8bd67abcf_battery").state)
+    say(answer)
+
+
+def open_door():
+    hass.turn_off("switch.sonoff_10013dd762")
+    say('дверь открыта')
+
+def close_door_and_turn_on_lock():
+    hass.turn_on("input_boolean.door_button_disable")
+    hass.turn_on("switch.sonoff_10013dd762")
+    say('дверь заблокирована')
 def yandex_scenario_good_night():
-    url = "https://api.iot.yandex.net/v1.0/scenarios/74fdaf53-8ad4-46ad-ad1a-78d209d7e6c5/actions"
-
-    payload={}
-    headers = {
-     'Authorization': 'Bearer y0_AgAEA7qh8fYYAAicxQAAAADT92BwzHtRgLXKT0CbfOOMJM_QzU_n4vI'
-    }
-
-    response = requests.request("POST", url, headers=headers, data=payload)
+    hass.turn_off("light.lampochka")
+    hass.turn_off("switch.sonoff_100117a970")
     say('и тебе спокойной ночи')
 
 def yandex_scenario_good_morning():
-    url = "https://api.iot.yandex.net/v1.0/scenarios/7c7b94e4-8f52-4df2-99d5-7ae56207ead0/actions"
-
-    payload={}
-    headers = {
-     'Authorization': 'Bearer y0_AgAEA7qh8fYYAAicxQAAAADT92BwzHtRgLXKT0CbfOOMJM_QzU_n4vI'
-    }
-
-    response = requests.request("POST", url, headers=headers, data=payload)
+    hass.turn_on("light.lampochka")
     yandex_weather_get()
 
 def yandex_scenario_im_home():
-    url = "https://api.iot.yandex.net/v1.0/scenarios/dc06c949-6cba-4e52-83ed-2eb4102fc086/actions"
-
-    payload={}
-    headers = {
-     'Authorization': 'Bearer y0_AgAEA7qh8fYYAAicxQAAAADT92BwzHtRgLXKT0CbfOOMJM_QzU_n4vI'
-    }
-
-    response = requests.request("POST", url, headers=headers, data=payload)
+    hass.turn_on("light.lampochka")
     say('с возвращением')
 
 
 def yandex_scenario_go_away():
-    url = "https://api.iot.yandex.net/v1.0/scenarios/66756bf6-c039-4680-9416-bcbdd4bff218/actions"
-
-    payload={}
-    headers = {
-     'Authorization': 'Bearer y0_AgAEA7qh8fYYAAicxQAAAADT92BwzHtRgLXKT0CbfOOMJM_QzU_n4vI'
-    }
-
-    response = requests.request("POST", url, headers=headers, data=payload)
+    hass.turn_off("light.lampochka")
+    hass.turn_off("switch.sonoff_100117a970")
+    hass.turn_on("input_boolean.door_button_disable")
+    hass.turn_on("switch.sonoff_10013dd762")
     say('до встречи, буду ждать')
 
 
-def on_connect(client, userdata, flags, rc):
-        if rc == 0:
-            print("Connected to MQTT Broker!")
-        else:
-            print("Failed to connect, return code %d\n", rc)
-def lamp(switch):
-    if switch == 'on':
-        client.publish('esp/lamp','lamp on') 
-    else:
-        client.publish('esp/lamp','lamp off')
-def connect_mqtt():
-    client = mqtt_client.Client(client_id)
-    client.username_pw_set(username, password)
-    client.on_connect = on_connect
-    client.connect(broker, port)
-    return client
-
-def subscribe(client,topic):
-    client.subscribe(topic,qos=0)
 
 
 
@@ -144,7 +120,7 @@ def listen():
     while True:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             print('начал слушать')
-            HOST = '127.0.0.1'  # The server's hostname or IP address
+            HOST = '192.168.1.4'  # The server's hostname or IP address
             PORT = 65431        # The port used by the server
             s.bind((HOST, PORT))
             s.listen()
@@ -161,7 +137,7 @@ def listen():
 def say(text):
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             print('отправляю' + text)
-            HOST = '127.0.0.1'  # The server's hostname or IP address
+            HOST = '192.168.1.7'  # The server's hostname or IP address
             PORT = 65432        # The port used by the server
             s.connect((HOST, PORT))
             s.send(text.encode())   
@@ -182,57 +158,57 @@ def get_current_hour():
 
 def yandex_weather_get():
 
-    hello_phrase = ""
+    #hello_phrase = ""
 
-    time_current_string = get_current_hour()
+    #time_current_string = get_current_hour()
 
     
-    if time_current_string == "ночь":
-            hello_phrase = "доброй ночи"
-    if time_current_string == "ночь1":
-            hello_phrase = "доброй ночи"
-    if time_current_string =="утро":
-            hello_phrase = "доброе утро"
-    if time_current_string == "день":
-            hello_phrase = "добрый день"
-    if time_current_string == "вечер":
-            hello_phrase = "добрый вечер"
+    #if time_current_string == "ночь":
+    #        hello_phrase = "доброй ночи"
+    #if time_current_string == "ночь1":
+    #        hello_phrase = "доброй ночи"
+    #if time_current_string =="утро":
+    #        hello_phrase = "доброе утро"
+    #if time_current_string == "день":
+    #        hello_phrase = "добрый день"
+    #if time_current_string == "вечер":
+    #        hello_phrase = "добрый вечер"
 
-    try:
+    #try:
 
-        response = requests.request("GET",
-                                   "https://api.weather.yandex.ru/v2/forecast?lat=55.75396&lon=37.620393&extra=false", 
-                                   headers={'X-Yandex-API-Key': '60a29894-5bb4-4e5b-be3c-179423bc6334'},
-                                   data={})
-        final = response.json()
-        weather_temp_current = str(final["fact"]["feels_like"])
-        weather_cond_current = weather_dict[final["fact"]["condition"]]
-        weather_day_temp = str(final["forecasts"][0]["parts"]["day"]["temp_avg"])
-        weather_day_cond = weather_dict[str(final["forecasts"][0]["parts"]["day"]["condition"])]
-        weather_evening_temp = str(final["forecasts"][0]["parts"]["evening"]["temp_avg"])
-        weather_evening_cond = weather_dict[str(final["forecasts"][0]["parts"]["evening"]["condition"])]
-        weather_morning_temp = str(final["forecasts"][0]["parts"]["morning"]["temp_avg"])
-        weather_morning_cond = weather_dict[str(final["forecasts"][0]["parts"]["morning"]["condition"])]
-    except Exception as e:
-            print("Exception (weather):", e)
-            pass            
+    #    response = requests.request("GET",
+    #                               "https://api.weather.yandex.ru/v2/informers?lat=55.75396&lon=37.620393&extra=false", 
+    #                               headers={'X-Yandex-API-Key': '60a29894-5bb4-4e5b-be3c-179423bc6334'},
+    #                               data={})
+    #    final = response.json()
+    #    print(final)
+    #    weather_temp_current = str(final["fact"]["feels_like"])
+    #    weather_cond_current = weather_dict[final["fact"]["condition"]]
+    #    weather_day_temp = str(final["forecast"]["parts"]["day"]["temp_avg"])
+    #    weather_day_cond = weather_dict[str(final["forecast"]["parts"]["day"]["condition"])]
+    #    weather_evening_temp = str(final["forecast"]["parts"]["evening"]["temp_avg"])
+    #    weather_evening_cond = weather_dict[str(final["forecast"]["parts"]["evening"]["condition"])]
+    #    weather_morning_temp = str(final["forecast"]["parts"]["morning"]["temp_avg"])
+    #    weather_morning_cond = weather_dict[str(final["forecast"]["parts"]["morning"]["condition"])]
+    #except Exception as e:
+    #        print("Exception (weather):", e)
+    #        pass            
         
-    if time_current_string == "ночь":
-        final_string = hello_phrase + ". сейчас за окном " + weather_cond_current + ". температура ощущается как " + weather_temp_current 
-    if time_current_string == "ночь1":
-        final_string = hello_phrase + ". сейчас за окном " + weather_cond_current + ". температура ощущается как " + weather_temp_current+ ". утром будет " + weather_evening_cond + ". на термометре будет " + weather_morning_temp + ". днем скорее всего будет " + weather_day_cond + ". градусник покажет " + weather_day_temp + ". а вечером " + weather_evening_cond + ". температура " + weather_evening_temp
-    if time_current_string == "утро":
-         final_string = hello_phrase + ". сейчас за окном " + weather_cond_current + ". температура ощущается как " + weather_temp_current + ". днем скорее всего будет " + weather_day_cond + ". градусник покажет " + weather_day_temp + ". а вечером " + weather_evening_cond + ". температура " + weather_evening_temp   
-    if time_current_string == "день":
-         final_string = hello_phrase + ". сейчас за окном " + weather_cond_current + ". температура ощущается как " + weather_temp_current + ". вечером будет " + weather_evening_cond + ". градусник покажет " + weather_evening_temp       
-    if time_current_string == "вечер":
-         final_string = hello_phrase + ". сейчас за окном " + weather_cond_current + ". температура ощущается как " + weather_temp_current
-    say(final_string)
+    #if time_current_string == "ночь":
+    #    final_string = hello_phrase + ". сейчас за окном " + weather_cond_current + ". температура ощущается как " + weather_temp_current 
+    #if time_current_string == "ночь1":
+    #    final_string = hello_phrase + ". сейчас за окном " + weather_cond_current + ". температура ощущается как " + weather_temp_current+ ". утром будет " + weather_morning_cond + ". на термометре будет " + weather_morning_temp + ". днем скорее всего будет " + weather_day_cond + ". градусник покажет " + weather_day_temp
+    #if time_current_string == "утро":
+    #     final_string = hello_phrase + ". сейчас за окном " + weather_cond_current + ". температура ощущается как " + weather_temp_current + ". днем скорее всего будет " + weather_day_cond + ". градусник покажет " + weather_day_temp + ". а вечером " + weather_evening_cond + ". температура " + weather_evening_temp   
+    #if time_current_string == "день":
+    #     final_string = hello_phrase + ". сейчас за окном " + weather_cond_current + ". температура ощущается как " + weather_temp_current + ". вечером будет " + weather_evening_cond + ". градусник покажет " + weather_evening_temp       
+    #if time_current_string == "вечер":
+    #     final_string = hello_phrase + ". сейчас за окном " + weather_cond_current + ". температура ощущается как " + weather_temp_current
+    #say(final_string)
+    say('проблемы на сервере яндекс. не могу получить данные о погоде')
 
     
 
-global client
-#client = connect_mqtt()
 if 1==1:
     time.sleep(3)
 #    say('ядро запущено')
